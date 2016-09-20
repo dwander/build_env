@@ -1,0 +1,17 @@
+com.sec.android.gallery3d=갤러리
+om.sec.android.app.popupcalulator=계산기
+com.sec.android.app.myfiles=내 파일
+com.sec.android.app.music=뮤직
+com.sec.android.app.bcocr=명함 인식
+com.samsung.android.video=비디오
+com.android.settings=설정
+com.sec.android.app.sbrowser=인터넷
+com.android.contacts=연락처&전화
+com.sec.android.app.voicenote=음성 녹음
+com.sec.android.app.clockpackage=알람/시간
+com.sec.android.app.dmb=DMB
+com.sec.android.app.samsungapps=Galaxy Apps
+com.samsung.android.snote=S노트
+com.sec.android.app.translator=S번역
+com.sec.android.app.shealth=S헬스
+

@@ -1,0 +1,17 @@
+com.google.android.youtube=YouTube
+com.android.vending=Google Play 스토어
+com.google.android.gm=Gmail
+com.google.android.apps.plus=Google+
+com.google.android.apps.docs=드라이브
+com.google.android.apps.books=Google Play 북
+com.google.android.keep=Keep
+com.google.android.play.games=Google Play 게임
+com.google.android.apps.translate=Google 번역
+com.google.android.googlequicksearchbox=Google Now
+com.google.android.apps.magazines=Play 뉴스스탠드
+com.google.android.apps.maps=지도
+com.google.android.apps.photos=포토
+com.google.android.talk=행아웃
+com.google.android.videos=Play 무비
+com.android.chrome=Chrome
+

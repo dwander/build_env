@@ -1,0 +1,231 @@
+#!/sbin/sh
+#
+# PRIME-Kernel installer zip.
+#
+# Thanks to Chainfire for some of the functions and logic!
+#
+
+OUTFD=$2
+ZIP=$3
+
+ui_print() {
+  echo -n -e "ui_print $1\n" > /proc/self/fd/$OUTFD
+  echo -n -e "ui_print\n" > /proc/self/fd/$OUTFD
+}
+
+sleep 2
+
+ui_print " "
+ui_print " "
+ui_print "==================================="
+ui_print "   PRIME-Kernel for Galaxy Note4";
+ui_print "==================================="
+ui_print " "
+
+unzip --help
+ERR=$?
+if [ $ERR -ne 0 ]; then
+  ui_print "  !! error not supported unzip command in currently recovery."
+  ui_print "  !! try again in another recovery"
+  exit 1
+fi
+
+cd /tmp
+rm -rf prime_kernel
+mkdir prime_kernel
+cd prime_kernel
+
+unzip -o "$ZIP"
+
+if [ ! -f "/tmp/prime_kernel/version" ]; then
+  ui_print "! Failed: /tmp/prime_kernel/version not found!"
+  exit 1
+fi
+
+KERNEL_VER=$(cat /tmp/prime_kernel/version)
+ui_print "   VERSION: $KERNEL_VER" && sleep 1
+ui_print " "
+
+ui_print " - Mounting /system and /data"
+mount /system
+mount -o rw,remount /system
+mount -o rw,remount /system /system
+mount /data
+mount -o rw,remount /data
+mount -o rw,remount /data /data
+
+ui_print " - Extracting files"
+cd /tmp/prime_kernel/system
+find . -type d -exec chmod 0755 {} \;
+find . -type f -exec chmod 0644 {} \;
+cp -rd ./. /system/
+cd ..
+cd /tmp/prime_kernel/data
+find . -type d -exec chmod 0755 {} \;
+find . -type f -exec chmod 0644 {} \;
+cp -rd ./. /data/
+cd ..
+cd /tmp/prime_kernel
+
+ui_print " - Dealing with security..."
+sed -i "/timaversion/d" /system/build.prop
+sed -i "/security.mdpp.mass/d" /system/build.prop
+sed -i "/ro.hardware.keystore/d" /system/build.prop
+rm -rf /system/app/SecurityLogAgent
+#rm -f /system/app/mcRegistry/ffffffff000000000000000000000028.tlbin
+#rm -f /system/app/mcRegistry/ffffffffd0000000000000000000000a.tlbin
+
+ui_print " - Checking environment"
+bootloader=`getprop ro.bootloader`
+carrier=${bootloader:0:5}
+variant=${bootloader:0:4}
+check_variant="N910 N915 N916"
+VARIANT_PASS=0
+
+for key in $check_variant
+do
+	[ $key == $variant ] && VARIANT_PASS=1
+done
+if [ $VARIANT_PASS -eq 0 ]; then
+  ui_print "  !! error in determining device variant"
+  ui_print "  !! try again in another recovery"
+  exit 1
+fi
+
+IS_TW=$(cat /system/build.prop| grep -c ro.com.google.clientidbase=android-samsung)
+if [ $IS_TW -eq 1 ]; then
+	OS="tw"
+else
+	OS="aosp"
+fi
+
+ui_print " - Flashing boot image..."
+ui_print "   DEVICE: $variant"
+
+if [ $carrier == N910S ] || [ $carrier == N910K ] || [ $carrier == N910L ]; then
+	device="n910kor"
+elif  [ $carrier == N910C ] || [ $carrier == N910H ]; then
+	device="n910ch"
+elif  [ $carrier == N910U ]; then
+	device="n910u"
+else
+	device=`echo $variant|awk '{print tolower($0)}'`
+fi
+
+/sbin/busybox tar -Jxf ./bootimg.tar.xz $device-$OS-boot.img
+sync
+if [ ! -f "/tmp/prime_kernel/$device-$OS-boot.img" ]; then
+	tar -Jxf ./bootimg.tar.xz $device-$OS-boot.img
+	sync
+fi
+if [ ! -f "/tmp/prime_kernel/$device-$OS-boot.img" ]; then
+  ui_print "! Failed: $device-$OS-boot.img not found"
+  ui_print "! this recovery does not support .xz format decompression"
+  ui_print "! try again in another recovery"
+  exit 1
+fi
+
+ui_print "   FILE  : $device-$OS-boot.img"
+TARGET_BLOCK=`readlink /dev/block/platform/*/by-name/BOOT`
+[ -z $TARGET_BLOCK ] && TARGET_BLOCK="/dev/block/mmcblk0p9"
+
+dd of=$TARGET_BLOCK if=/tmp/prime_kernel/$device-$OS-boot.img
+rm bootimg.tar.xz $device-$OS-boot.img
+sync
+
+
+#ui_print " "
+#ui_print " - Extracting kernel modules..."
+#rm -rf /system/lib/modules
+#cp -rf ./system/* /system
+
+ui_print " - Remove old data..."
+if [ ! -e /data/media/0/Synapse/.do_not_remove_data ]; then
+    rm -rf /data/data/com.af.synapse
+    rm -rf /data/data/com.af.synapse-*
+fi
+rm /data/su.img
+rm /data/stock_boot.img
+rm /data/stock_boot_*.img.gz
+rm /data/stockboot*.img.gz
+rm /data/zipalign.db
+rm /system/xbin/uci
+rm /system/etc/init.d/*fstrim*
+rm /system/etc/init.d/*zipalign*
+
+
+ui_print " - Setup environment..."
+mkdir /system/etc/init.d
+mkdir /data/PRIME-Kernel
+chmod -R 0755 /data/PRIME-Kernel/*
+chmod -R 0755 /system/etc/init.d
+chown -R root.root /system/etc/init.d
+chmod -R 0755 /system/etc/init.d-postboot
+chown -R root.root /system/etc/init.d-postboot
+cp -rf ./data/* /data/
+
+synapse_dir=/data/media/0/Synapse
+key_file="$synapse_dir/.serial_key"
+key_ext="/external_sd/.serial_key"
+key_usb="/usbstogare/.serial_key"
+
+if [ -f $key_usb ] && [ ! -f $key_ext ]; then
+	key_backup=$key_usb
+else
+	key_backup=$key_ext
+fi
+
+local_key=$(cat $key_file 2> /dev/null)
+backup_key=$(cat $key_backup 2> /dev/null)
+restore_flag=0
+
+if [ -f $key_file ]; then
+	restore_flag=0
+elif [ ! -f $key_file ] && [ -f $key_backup ]; then
+	restore_flag=1
+fi
+if [ "$local_key" != "$backup_key" ]; then
+	restore_flag=1
+fi
+
+if [ $restore_flag -eq 1 ]; then
+	ui_print " "
+	ui_print " - [[ Restore Synapse KeyCode ]]"
+	[ ! -d $synapse_dir ] && mkdir $synapse_dir
+	chmod 0775 $synapse_dir
+	chown media_rw:media_rw $synapse_dir
+	cp -f $key_backup $key_file
+	ERR=$?
+	if [ $ERR -eq 0 ]; then
+		ui_print " - [[ Restore Successfull! ]]"
+	else
+		ui_print " !! Restore Failed! "
+		ui_print " !! Using the 'File Manager' copy /external_sd/.serial_key to /sdcard/Synapse folder."
+	fi
+fi
+
+LOCAL_KEY=$(cat $key_file 2> /dev/null)
+SHORTKEY=${LOCAL_KEY%%-*}
+
+if [ "$LOCAL_KEY" ] && [ "$LOCAL_KEY" != "$SHORTKEY" ]; then
+	if [ ! -f $key_ext ]; then
+		cp -f $key_file $key_ext
+		ERR=$?
+		if [ ERR -eq 0 ]; then
+			ui_print " "
+			ui_print " - [[ extSdCard: KeyCode backup successfull! ]]"
+		fi
+	fi
+	if [ ! -f $key_usb ]; then
+		cp -f $key_file $key_usb
+		ERR=$?
+		if [ ERR -eq 0 ]; then
+			ui_print " "
+			ui_print " - [[ USB-OTG: KeyCode backup successfull! ]]"
+		fi
+	fi
+fi
+
+sync
+ui_print " "
+

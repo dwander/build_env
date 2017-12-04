@@ -15,7 +15,7 @@ TWRP_VER="3.1.1-0"
 RAMDISK_TW=~/env/ramdisk/tw
 RAMDISK_CM=~/env/ramdisk/cm14
 RAMDISK_TWRP=~/env/ramdisk/twrp
-BUILD_VARIANTS="n916-tw n915-tw n910kor-tw n910ch-tw n910u-tw"
+BUILD_VARIANTS="n916-tw n915-tw n910kor-tw"
 #BUILD_VARIANTS="n916-twrp n915-twrp n910-twrp"
 #BUILD_VARIANTS="n916-tw n916-twrp n915-tw n915-twrp n910-tw n910-twrp"
 
@@ -27,6 +27,7 @@ mkdir $RAMDISK_TW/lib 2>/dev/null
 mkdir $RAMDISK_TW/lib/modules 2>/dev/null
 mkdir $RAMDISK_TW/proc 2>/dev/null
 mkdir $RAMDISK_TW/sys 2>/dev/null
+mkdir -p $TMPDIR
 
 # echo "RAMDISK: $RAMDISK_TW"
 

@@ -1,0 +1,94 @@
+
+on boot
+
+
+# MTP permission
+    chmod 0660 /dev/usb_mtp_gadget
+    chown system mtp /dev/usb_mtp_gadget
+
+# Permissions for usb_lock
+    chown system radio /sys/class/android_usb/android0/usb_lock
+
+# terminal mode
+    chmod 0660 /sys/class/android_usb/android0/terminal_version
+    chown system system /sys/class/android_usb/android0/terminal_version
+
+# Switch USB20 to USB30
+    chown system system /sys/class/android_usb/android0/usb30en
+    chmod 0660 /sys/class/android_usb/android0/usb30en
+
+# for datarouter
+    chown system system /dev/dun
+    chown system system /dev/ttyGS0
+    chown system system /dev/ttyGS1
+    chown system system /dev/ttyGS2
+    chown system system /dev/ttyGS3
+
+# OTG_TEST
+    chown system radio /sys/class/host_notify/usb_otg/booster
+    chmod 0660 /sys/class/host_notify/usb_otg/booster
+
+# For setting tcp delayed ack
+    chown system system /sys/kernel/ipv4/tcp_delack_seg
+    chown system system /sys/kernel/ipv4/tcp_use_userconfig
+
+# Define TCP delayed ack settings for WiFi & LTE
+    setprop net.tcp.delack.default     1
+    setprop net.tcp.delack.wifi        8
+    setprop net.tcp.usercfg.default    0
+    setprop net.tcp.usercfg.wifi       1
+
+# NFC/FeliCa
+    chown nfc nfc /dev/sec-nfc-fn
+    chown nfc nfc /dev/felica_ant
+    chown nfc nfc /dev/ttySAC1
+
+# IMS Stack
+    service imsd /system/bin/imsd
+    class main
+    socket imsd stream 0660 system system
+    user root
+    group system radio net_raw inet net_admin
+	
+# JPN: For MobileTV [ISDBT] \android\device\samsung\a8hpltekdi\init.carrier.rc
+    service mobileTV /system/bin/SDtvService
+    class main
+    user system
+    group system radio audio graphics net_bt sdcard_rw shell media media_rw mediadrm dpgp 	
+
+on fs
+
+# MOBILE OFFICE Permanent memory access
+    mkdir /efs/security 0771 root root
+    chown radio system /efs/security
+    chmod 0771 /efs/security
+
+
+# Support silent logging
+    mkdir /data/log 0775 system log
+    mkdir /data/misc/dhcp 0775 dhcp dhcp
+    chown dhcp dhcp /data/misc/dhcp
+    chmod 0777 /system/bin/diagexe
+    chmod 0755 /system/bin/ddexe
+    chmod 0755 /system/bin/smdexe
+		
+# Permissions for ISDBT
+    chown system system /dev/isdbt
+    chmod 0660 /dev/isdbt
+	
+	
+# JPN: For MobileTV [ISDBT] \android\device\samsung\a8hplte_common\init.a8hplte.rc
+    mkdir /data/one-seg 0775 system system
+    chown system system /data/one-seg
+    chmod 0775 /data/one-seg		
+	
+
+# RIL diagexe for CP
+service DIAG-daemon /system/bin/diagexe
+    class main
+    user root
+    group system radio inet net_raw
+
+# NFC/FeliCa
+    mkdir /efs/sec_efs/FeliCaLock 0770 system felicalock
+
